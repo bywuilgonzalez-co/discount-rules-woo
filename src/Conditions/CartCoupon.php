@@ -25,7 +25,12 @@ class CartCoupon implements ConditionInterface
             return false;
         }
 
-        $operator = !empty($data['operator']) ? $data['operator'] : 'in_list'; // in_list, not_in_list
+        $operator = !empty($data['operator']) ? $data['operator'] : 'in_list'; // in_list, not_in_list, applied, not_applied
+        if ($operator === 'applied') {
+            $operator = 'in_list';
+        } elseif ($operator === 'not_applied') {
+            $operator = 'not_in_list';
+        }
         $target_coupons = !empty($data['value']) ? (array)$data['value'] : [];
 
         // WooCommerce applied coupons are usually lowercase

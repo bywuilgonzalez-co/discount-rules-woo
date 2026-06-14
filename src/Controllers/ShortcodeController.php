@@ -66,7 +66,7 @@ class ShortcodeController
             'columns'    => 4,
             'category'   => '',
             'ids'        => '',
-            'scan_limit' => 80,
+            'scan_limit' => 240,
             'class'      => '',
         ], (array)$atts, 'drw_sale_items_list');
 
@@ -76,33 +76,7 @@ class ShortcodeController
         $category = sanitize_text_field($atts['category']);
         $ids = $this->parse_id_list($atts['ids']);
 
-        $query_args = [
-            'post_type'              => 'product',
-            'post_status'            => 'publish',
-            'posts_per_page'         => $scan_limit,
-            'fields'                 => 'ids',
-            'no_found_rows'          => true,
-            'update_post_meta_cache' => false,
-            'update_post_term_cache' => false,
-        ];
-
-        if (!empty($ids)) {
-            $query_args['post__in'] = $ids;
-            $query_args['orderby'] = 'post__in';
-            $query_args['posts_per_page'] = min($scan_limit, count($ids));
-        }
-
-        if ($category !== '') {
-            $query_args['tax_query'] = [
-                [
-                    'taxonomy' => 'product_cat',
-                    'field'    => 'slug',
-                    'terms'    => array_map('trim', explode(',', $category)),
-                ],
-            ];
-        }
-
-        $product_ids = get_posts($query_args);
+        $product_ids = $this->get_sale_candidate_product_ids($ids, $category, $scan_limit);
         $cards = [];
 
         foreach ($product_ids as $product_id) {
@@ -138,6 +112,109 @@ class ShortcodeController
             esc_attr($style),
             implode('', $cards)
         );
+    }
+
+    /**
+     * Build a broad candidate list from active discount rules before falling back
+     * to a generic product scan. This lets dynamic-rule products appear even when
+     * they are not in the first page of products.
+     */
+    private function get_sale_candidate_product_ids(array $ids, $category, $scan_limit)
+    {
+        if (!empty($ids)) {
+            return $this->query_product_ids([
+                'post__in' => $ids,
+                'orderby'  => 'post__in',
+            ], $category, min($scan_limit, count($ids)));
+        }
+
+        $candidate_ids = [];
+        $engine = RulesEngine::instance();
+        $rules = method_exists($engine, 'get_active_rules') ? $engine->get_active_rules() : [];
+
+        foreach ((array)$rules as $rule) {
+            $adjustments = !empty($rule['adjustments']) ? (array)$rule['adjustments'] : [];
+            $type = !empty($adjustments['type']) ? $adjustments['type'] : '';
+            if (!in_array($type, ['percentage', 'fixed', 'bulk'], true)) {
+                continue;
+            }
+
+            $apply_to = !empty($rule['apply_to']) ? $rule['apply_to'] : 'all_products';
+            $filters = !empty($rule['filters']) ? (array)$rule['filters'] : [];
+
+            if ($apply_to === 'specific_products' && !empty($filters['product_ids'])) {
+                $candidate_ids = array_merge(
+                    $candidate_ids,
+                    $this->query_product_ids([
+                        'post__in' => array_map('intval', (array)$filters['product_ids']),
+                        'orderby'  => 'post__in',
+                    ], $category, $scan_limit)
+                );
+            } elseif ($apply_to === 'specific_categories' && !empty($filters['category_ids'])) {
+                $candidate_ids = array_merge(
+                    $candidate_ids,
+                    $this->query_product_ids([
+                        'tax_query' => [
+                            [
+                                'taxonomy' => 'product_cat',
+                                'field'    => 'term_id',
+                                'terms'    => array_map('intval', (array)$filters['category_ids']),
+                            ],
+                        ],
+                    ], $category, $scan_limit)
+                );
+            } elseif ($apply_to === 'all_products') {
+                $candidate_ids = array_merge(
+                    $candidate_ids,
+                    $this->query_product_ids([], $category, $scan_limit)
+                );
+            }
+        }
+
+        if (function_exists('wc_get_product_ids_on_sale')) {
+            $candidate_ids = array_merge($candidate_ids, array_map('intval', (array)wc_get_product_ids_on_sale()));
+        }
+
+        $candidate_ids = array_values(array_unique(array_filter(array_map('intval', $candidate_ids))));
+        if (empty($candidate_ids)) {
+            $candidate_ids = $this->query_product_ids([], $category, $scan_limit);
+        }
+
+        return $candidate_ids;
+    }
+
+    /**
+     * Query product IDs with optional shortcode category narrowing.
+     */
+    private function query_product_ids(array $extra_args, $category, $limit)
+    {
+        $query_args = array_merge([
+            'post_type'              => 'product',
+            'post_status'            => 'publish',
+            'posts_per_page'         => $limit,
+            'fields'                 => 'ids',
+            'no_found_rows'          => true,
+            'update_post_meta_cache' => false,
+            'update_post_term_cache' => false,
+        ], $extra_args);
+
+        if ($category !== '') {
+            $category_filter = [
+                [
+                    'taxonomy' => 'product_cat',
+                    'field'    => 'slug',
+                    'terms'    => array_map('trim', explode(',', $category)),
+                ],
+            ];
+
+            if (!empty($query_args['tax_query'])) {
+                $query_args['tax_query'] = array_merge((array)$query_args['tax_query'], $category_filter);
+            } else {
+                $query_args['tax_query'] = $category_filter;
+            }
+        }
+
+        return get_posts($query_args);
     }
 
     /**

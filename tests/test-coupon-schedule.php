@@ -40,7 +40,7 @@ $cart = new Drw_Test_Cart(['flash-am']);
 
 $scheduled_coupon = [
     'type' => 'cart_coupon',
-    'operator' => 'in_list',
+    'operator' => 'applied',
     'value' => ['flash-am'],
     'start_date' => '2026-06-14',
     'end_date' => '2026-06-14',

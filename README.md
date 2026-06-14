@@ -23,7 +23,7 @@ A 100% complete, high-performance, and unified dynamic pricing and discount rule
 
 ## Shortcodes
 
-Use this on an offers page to render products that have a native WooCommerce sale price or a dynamic discount rule:
+Use this on an offers page to render products that have a native WooCommerce sale price or an active dynamic discount rule:
 
 ```text
 [awdr_sale_items_list limit="12" columns="4"]
@@ -50,6 +50,8 @@ For coupon rules, use the schedule fields under **Cart Coupon Applied**:
 - Start Date / End Date
 - Start Time / End Time
 - Duration in minutes, useful for flash coupons such as `07:00` to `10:00` or a 30-minute launch window.
+
+The scheduling fields used by the admin rule builder are supported directly, including `Start Date`, `End Date`, `Start Time`, `End Time`, and `Duration (minutes)`.
 
 ## Installation
 

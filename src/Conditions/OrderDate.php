@@ -24,38 +24,32 @@ class OrderDate implements ConditionInterface
 
         $in_range = true;
 
-        // 1. Date Range Check
-        $date_from = isset($data['date_from']) ? $data['date_from'] : '';
-        $date_to   = isset($data['date_to']) ? $data['date_to'] : '';
+        // 1. Date/Time Range Check
+        $date_from = self::first_value($data, ['date_from', 'start_date']);
+        $date_to = self::first_value($data, ['date_to', 'end_date']);
+        $time_from = self::normalize_time(self::first_value($data, ['time_from', 'order_time_from', 'start_time']));
+        $time_to = self::normalize_time(self::first_value($data, ['time_to', 'order_time_to', 'end_time']));
+        $duration_minutes = !empty($data['duration_minutes']) ? max(0, (int)$data['duration_minutes']) : 0;
 
-        if (!empty($date_from)) {
-            $from_ts = is_numeric($date_from) ? (int)$date_from : strtotime($date_from);
-            if ($from_ts && $current_time < $from_ts) {
+        $from_ts = self::build_boundary_timestamp($date_from, $time_from, false);
+        $to_ts = $duration_minutes > 0 && $from_ts
+            ? $from_ts + ($duration_minutes * 60)
+            : self::build_boundary_timestamp($date_to, $time_to, true);
+
+        if ($from_ts) {
+            if ($current_time < $from_ts) {
                 $in_range = false;
             }
         }
-        if ($in_range && !empty($date_to)) {
-            $to_ts = is_numeric($date_to) ? (int)$date_to : strtotime($date_to);
-            if ($to_ts && $current_time > $to_ts) {
+        if ($in_range && $to_ts) {
+            if ($current_time > $to_ts) {
                 $in_range = false;
             }
         }
 
-        // 2. Time Range Check (format e.g., '09:00' to '18:00')
-        if ($in_range) {
-            $time_from = !empty($data['time_from']) ? $data['time_from'] : (!empty($data['order_time_from']) ? $data['order_time_from'] : '');
-            $time_to   = !empty($data['time_to']) ? $data['time_to'] : (!empty($data['order_time_to']) ? $data['order_time_to'] : '');
-            
-            if (!empty($time_from) || !empty($time_to)) {
-                $current_time_str = date('H:i', $current_time);
-                
-                if (!empty($time_from) && $current_time_str < $time_from) {
-                    $in_range = false;
-                }
-                if ($in_range && !empty($time_to) && $current_time_str > $time_to) {
-                    $in_range = false;
-                }
-            }
+        // 2. Recurring daily Time Range Check when no date boundary is set.
+        if ($in_range && !$from_ts && !$to_ts && ($time_from !== '' || $time_to !== '')) {
+            $in_range = self::is_current_time_inside_daily_window($current_time, $time_from, $time_to);
         }
 
         // 3. Allowed Weekdays Check
@@ -98,5 +92,65 @@ class OrderDate implements ConditionInterface
         }
 
         return $in_range;
+    }
+
+    /**
+     * Return the first non-empty value from possible field names.
+     */
+    private static function first_value(array $data, array $keys)
+    {
+        foreach ($keys as $key) {
+            if (isset($data[$key]) && $data[$key] !== '') {
+                return $data[$key];
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Normalize HH:MM strings.
+     */
+    private static function normalize_time($time)
+    {
+        $time = trim((string)$time);
+        return preg_match('/^\d{2}:\d{2}$/', $time) ? $time : '';
+    }
+
+    /**
+     * Build a timestamp from date and optional time.
+     */
+    private static function build_boundary_timestamp($date, $time, $is_end)
+    {
+        if (is_numeric($date)) {
+            return (int)$date;
+        }
+
+        $date = trim((string)$date);
+        if ($date === '') {
+            return 0;
+        }
+
+        $time = self::normalize_time($time);
+        $time = $time !== '' ? $time : ($is_end ? '23:59' : '00:00');
+        $timestamp = strtotime($date . ' ' . $time);
+
+        return $timestamp ? (int)$timestamp : 0;
+    }
+
+    /**
+     * Evaluate recurring daily time windows, including overnight ranges.
+     */
+    private static function is_current_time_inside_daily_window($current_time, $start_time, $end_time)
+    {
+        $current = date('H:i', $current_time);
+        $start_time = $start_time !== '' ? $start_time : '00:00';
+        $end_time = $end_time !== '' ? $end_time : '23:59';
+
+        if ($start_time <= $end_time) {
+            return $current >= $start_time && $current <= $end_time;
+        }
+
+        return $current >= $start_time || $current <= $end_time;
     }
 }

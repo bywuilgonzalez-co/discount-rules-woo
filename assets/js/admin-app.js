@@ -1054,6 +1054,13 @@
                                     type: 'time',
                                     value: cond.end_time || '',
                                     onChange: (val) => updateCondition(idx, 'end_time', val)
+                                }),
+                                el(TextControl, {
+                                    label: 'Duration (minutes)',
+                                    type: 'number',
+                                    value: cond.duration_minutes || '',
+                                    help: 'Optional. If set, duration starts from the start date/time.',
+                                    onChange: (val) => updateCondition(idx, 'duration_minutes', parseInt(val) || '')
                                 })
                             ),
                             el('div', { style: { marginTop: '8px' } },

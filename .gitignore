@@ -14,3 +14,12 @@ ehthumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Build artifacts
+scratch/
+*.zip
+
+# AI workspaces
+.gemini/
+.cursor/
+.trae/

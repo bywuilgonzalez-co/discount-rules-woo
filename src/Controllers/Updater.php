@@ -56,7 +56,7 @@ class Updater
                 $obj->slug = 'discount-rules-woo';
                 $obj->plugin = DRW_PLUGIN_BASENAME;
                 $obj->new_version = $remote_version;
-                $obj->package = !empty($release->zipball_url) ? $release->zipball_url : '';
+                $obj->package = $this->get_download_url($release);
                 $obj->url = 'https://github.com/bywuilgonzalez-co/discount-rules-woo';
 
                 if (!isset($transient->response)) {
@@ -100,8 +100,9 @@ class Updater
         $res->version = $remote_version;
         $res->author = '<a href="https://bywuilgonzalez.com">Bywuilgonzalez.com</a>';
         $res->homepage = 'https://github.com/bywuilgonzalez-co/discount-rules-woo';
-        $res->download_link = !empty($release->zipball_url) ? $release->zipball_url : '';
-        $res->trunk = !empty($release->zipball_url) ? $release->zipball_url : '';
+        $download_url = $this->get_download_url($release);
+        $res->download_link = $download_url;
+        $res->trunk = $download_url;
 
         // Safely format the release body for changelog
         $changelog = !empty($release->body) ? wp_kses_post(nl2br($release->body)) : '';
@@ -157,6 +158,31 @@ class Updater
         }
 
         return $source;
+    }
+
+    /**
+     * Get the best download URL from a release.
+     * Prefers the uploaded release asset (discount-rules-woo.zip) over zipball_url.
+     *
+     * @param object $release
+     * @return string
+     */
+    private function get_download_url($release)
+    {
+        // Prefer the uploaded .zip asset (clean folder structure)
+        if (!empty($release->assets) && is_array($release->assets)) {
+            foreach ($release->assets as $asset) {
+                if (
+                    !empty($asset->browser_download_url) &&
+                    substr($asset->name, -4) === '.zip'
+                ) {
+                    return $asset->browser_download_url;
+                }
+            }
+        }
+
+        // Fallback to zipball (requires rename_github_folder hook)
+        return !empty($release->zipball_url) ? $release->zipball_url : '';
     }
 
     /**

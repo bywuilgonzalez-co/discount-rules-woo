@@ -151,12 +151,25 @@ class RulesEngine
         $apply_to = !empty($rule['apply_to']) ? $rule['apply_to'] : 'all_products';
         $filters  = !empty($rule['filters']) ? (array)$rule['filters'] : [];
 
+        $product_id = $product->get_id();
+        $parent_id  = $product->get_parent_id();
+        $excluded_ids = !empty($filters['exclude_product_ids']) ? array_map('intval', (array)$filters['exclude_product_ids']) : [];
+        $excluded_cats = !empty($filters['exclude_category_ids']) ? array_map('intval', (array)$filters['exclude_category_ids']) : [];
+
+        if (!empty($excluded_ids) && (in_array($product_id, $excluded_ids, true) || ($parent_id && in_array($parent_id, $excluded_ids, true)))) {
+            return false;
+        }
+
+        if (!empty($excluded_cats)) {
+            $product_cats = wc_get_product_term_ids($product_id, 'product_cat');
+            if (!empty(array_intersect($product_cats, $excluded_cats))) {
+                return false;
+            }
+        }
+
         if ($apply_to === 'all_products') {
             return true;
         }
-
-        $product_id = $product->get_id();
-        $parent_id  = $product->get_parent_id();
 
         if ($apply_to === 'specific_products') {
             $target_ids = !empty($filters['product_ids']) ? array_map('intval', (array)$filters['product_ids']) : [];

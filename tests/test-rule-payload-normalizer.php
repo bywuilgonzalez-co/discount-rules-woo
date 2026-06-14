@@ -24,6 +24,8 @@ $rule = Drw\App\Models\RuleModel::sanitize_rule_payload([
     'filters' => [
         'product_ids' => ['15', 'bad', -3, 15],
         'category_ids' => ['8', '0'],
+        'exclude_product_ids' => ['44', 'x', -2],
+        'exclude_category_ids' => ['9', 'bad'],
     ],
     'adjustments' => [
         'type' => 'bundle',
@@ -40,16 +42,26 @@ $rule = Drw\App\Models\RuleModel::sanitize_rule_payload([
             'history_metric' => 'products_bought',
             'value' => ['11', 'x', '12'],
         ],
+        [
+            'type' => 'cart_coupon',
+            'value' => ['FLASH-AM', ' vip10 '],
+            'start_time' => '07:00',
+            'end_time' => '10:00',
+        ],
     ],
 ]);
 
 assert_same('VIP Deal', $rule['title'], 'Rule title should be sanitized.');
 assert_same([15], $rule['filters']['product_ids'], 'Filter product IDs should be unique positive integers.');
 assert_same([8], $rule['filters']['category_ids'], 'Filter category IDs should be unique positive integers.');
+assert_same([44], $rule['filters']['exclude_product_ids'], 'Excluded product IDs should be unique positive integers.');
+assert_same([9], $rule['filters']['exclude_category_ids'], 'Excluded category IDs should be unique positive integers.');
 assert_same('bundle_set', $rule['adjustments']['type'], 'Legacy bundle type should normalize to engine type.');
 assert_same(49.95, $rule['adjustments']['bundle_price'], 'Legacy set_price should normalize to bundle_price.');
 assert_same([9], $rule['conditions'][0]['product_ids'], 'Condition product IDs should normalize.');
 assert_same([11, 12], $rule['conditions'][1]['value'], 'Purchase history product IDs should normalize.');
+assert_same(['FLASH-AM', 'vip10'], $rule['conditions'][2]['value'], 'Coupon codes should stay as sanitized strings.');
+assert_same('07:00', $rule['conditions'][2]['start_time'], 'Coupon start time should be preserved.');
 
 $bogo = Drw\App\Models\RuleModel::sanitize_rule_payload([
     'title' => 'BOGO',

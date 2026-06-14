@@ -18,6 +18,8 @@ A 100% complete, high-performance, and unified dynamic pricing and discount rule
 - **HPOS Compatibility**: Declarative support for WooCommerce High-Performance Order Storage (HPOS).
 - **React Admin UI**: Seamless, modern administrator interface built native to the WordPress dashboard using `@wordpress/components`.
 - **Sale Items Shortcodes**: Display discounted products with `[drw_sale_items_list]`, `[awdr_sale_items_list]`, or `[on_sale]`.
+- **Advanced Target Exclusions**: Apply a rule to a category while excluding specific products or categories.
+- **Scheduled Coupon Windows**: Restrict coupon rules to date/time ranges or short durations such as 7:00 AM to 10:00 AM.
 
 ## Shortcodes
 
@@ -38,6 +40,16 @@ Discounted products render a percentage badge using this markup:
 ```html
 <div class="sale-perc">-12 %</div>
 ```
+
+## Advanced Rule Targeting
+
+Rules can target all products, specific products, or product categories. Use the **Exclusions** section in the rule editor to exclude products or categories from that rule, even if they match the selected target category.
+
+For coupon rules, use the schedule fields under **Cart Coupon Applied**:
+
+- Start Date / End Date
+- Start Time / End Time
+- Duration in minutes, useful for flash coupons such as `07:00` to `10:00` or a 30-minute launch window.
 
 ## Installation
 

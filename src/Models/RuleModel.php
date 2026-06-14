@@ -192,6 +192,8 @@ class RuleModel
     {
         $filters['product_ids'] = self::normalize_id_list(isset($filters['product_ids']) ? $filters['product_ids'] : []);
         $filters['category_ids'] = self::normalize_id_list(isset($filters['category_ids']) ? $filters['category_ids'] : []);
+        $filters['exclude_product_ids'] = self::normalize_id_list(isset($filters['exclude_product_ids']) ? $filters['exclude_product_ids'] : []);
+        $filters['exclude_category_ids'] = self::normalize_id_list(isset($filters['exclude_category_ids']) ? $filters['exclude_category_ids'] : []);
 
         return $filters;
     }
@@ -216,7 +218,12 @@ class RuleModel
             if (isset($condition['category_ids'])) {
                 $condition['category_ids'] = self::normalize_id_list($condition['category_ids']);
             }
-            if (isset($condition['value']) && is_array($condition['value'])) {
+            $condition_type = !empty($condition['type']) ? $condition['type'] : '';
+            $history_metric = !empty($condition['history_metric']) ? $condition['history_metric'] : '';
+            $value_is_product_ids = in_array($condition_type, ['products', 'product_combination', 'cart_item_product_combination'], true)
+                || ($condition_type === 'purchase_history' && in_array($history_metric, ['products_bought', 'previous_purchase_products'], true));
+
+            if (isset($condition['value']) && is_array($condition['value']) && $value_is_product_ids) {
                 $condition['value'] = self::normalize_id_list($condition['value']);
             }
 

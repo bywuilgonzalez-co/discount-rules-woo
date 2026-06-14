@@ -200,7 +200,9 @@
                 apply_to: 'all_products',
                 filters: {
                     product_ids: [],
-                    category_ids: []
+                    category_ids: [],
+                    exclude_product_ids: [],
+                    exclude_category_ids: []
                 },
                 conditions: [],
                 adjustments: {
@@ -522,6 +524,44 @@
                             );
                         })
                     )
+                ),
+
+                el('div', { className: 'drw-filter-exclusions' },
+                    el('h4', null, 'Exclusions'),
+                    el('p', { className: 'drw-help-text' }, 'Exclude products or categories from this rule even when they match the selected target scope.'),
+                    el(ProductSearchMultiSelect, {
+                        label: 'Exclude Products',
+                        selectedIds: rule.filters.exclude_product_ids || [],
+                        help: 'Products selected here will never receive this rule discount.',
+                        onChange: (ids) => updateFilters('exclude_product_ids', ids)
+                    }),
+                    el('div', { style: { marginTop: '12px' } },
+                        el('span', { className: 'drw-field-label' }, 'Exclude Categories:'),
+                        el('div', { className: 'drw-checklist-box drw-exclusion-category-box' },
+                            adminData.categories.map((cat) => {
+                                const isChecked = (rule.filters.exclude_category_ids || []).includes(cat.id);
+                                return el('div', { key: cat.id, className: 'drw-checkbox-item' },
+                                    el('label', null,
+                                        el('input', {
+                                            type: 'checkbox',
+                                            checked: isChecked,
+                                            onChange: (e) => {
+                                                const list = [...(rule.filters.exclude_category_ids || [])];
+                                                if (e.target.checked) {
+                                                    list.push(cat.id);
+                                                } else {
+                                                    const idx = list.indexOf(cat.id);
+                                                    if (idx > -1) list.splice(idx, 1);
+                                                }
+                                                updateFilters('exclude_category_ids', list);
+                                            }
+                                        }),
+                                        ' ' + cat.name
+                                    )
+                                );
+                            })
+                        )
+                    )
                 )
             ),
 
@@ -814,6 +854,43 @@
                             value: cond.value || '',
                             onChange: (val) => updateCondition(idx, 'value', val)
                         }),
+                        cond.type === 'cart_coupon' && el('div', { className: 'drw-coupon-schedule-container' },
+                            el('div', { className: 'drw-flex-row' },
+                                el(TextControl, {
+                                    label: 'Start Date',
+                                    type: 'date',
+                                    value: cond.start_date || '',
+                                    onChange: (val) => updateCondition(idx, 'start_date', val)
+                                }),
+                                el(TextControl, {
+                                    label: 'End Date',
+                                    type: 'date',
+                                    value: cond.end_date || '',
+                                    onChange: (val) => updateCondition(idx, 'end_date', val)
+                                })
+                            ),
+                            el('div', { className: 'drw-flex-row' },
+                                el(TextControl, {
+                                    label: 'Start Time',
+                                    type: 'time',
+                                    value: cond.start_time || '',
+                                    onChange: (val) => updateCondition(idx, 'start_time', val)
+                                }),
+                                el(TextControl, {
+                                    label: 'End Time',
+                                    type: 'time',
+                                    value: cond.end_time || '',
+                                    onChange: (val) => updateCondition(idx, 'end_time', val)
+                                }),
+                                el(TextControl, {
+                                    label: 'Duration (minutes)',
+                                    type: 'number',
+                                    value: cond.duration_minutes || '',
+                                    help: 'Optional. If set, duration starts from the start date/time.',
+                                    onChange: (val) => updateCondition(idx, 'duration_minutes', parseInt(val) || '')
+                                })
+                            )
+                        ),
 
                         // Total Cart Items Quantity Condition
                         cond.type === 'cart_items_quantity' && el(SelectControl, {

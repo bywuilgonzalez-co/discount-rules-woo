@@ -269,7 +269,7 @@ class CartController
                 if ($type === 'cart_coupon' || $type === 'coupon') {
                     $target_coupons = !empty($cond['value']) ? (array)$cond['value'] : [];
                     $target_coupons = array_map('strtolower', array_map('trim', $target_coupons));
-                    if (in_array(strtolower($code), $target_coupons, true)) {
+                    if (in_array(strtolower($code), $target_coupons, true) && \Drw\App\Conditions\CartCoupon::is_schedule_matched($cond)) {
                         $coupon_matched = true;
                         break 2;
                     }

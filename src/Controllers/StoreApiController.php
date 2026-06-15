@@ -23,8 +23,9 @@ class StoreApiController {
             return;
         }
         // Register cart extension data so discount info is available in the Block Cart response
+        // Use the string identifier directly to avoid a hard dependency on WC's internal CartSchema class.
         woocommerce_store_api_register_endpoint_data([
-            'endpoint'        => Automattic\WooCommerce\StoreApi\Schemas\V1\CartSchema::IDENTIFIER,
+            'endpoint'        => 'cart',
             'namespace'       => 'discount-rules-woo',
             'data_callback'   => [$this, 'get_cart_extension_data'],
             'schema_callback' => [$this, 'get_cart_extension_schema'],

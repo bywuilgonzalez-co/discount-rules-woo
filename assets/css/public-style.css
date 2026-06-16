@@ -203,6 +203,15 @@
     color: #6b7280;
 }
 
+/* ── Controls group (category + sort) ── */
+.drw-sort-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.drw-cat-select,
 .drw-sort-select {
     appearance: none;
     -webkit-appearance: none;
@@ -214,14 +223,23 @@
     color: #374151;
     cursor: pointer;
     outline: none;
-    min-width: 220px;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.drw-cat-select {
+    min-width: 180px;
+}
+
+.drw-sort-select {
+    min-width: 220px;
+}
+
+.drw-cat-select:hover,
 .drw-sort-select:hover {
     border-color: #9ca3af;
 }
 
+.drw-cat-select:focus,
 .drw-sort-select:focus {
     border-color: #2a2a2a;
     box-shadow: 0 0 0 2px rgba(42, 42, 42, 0.12);
@@ -303,6 +321,7 @@
         animation: none !important;
     }
 
+    .drw-cat-select,
     .drw-sort-select {
         transition: none !important;
     }

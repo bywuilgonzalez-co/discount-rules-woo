@@ -119,7 +119,7 @@ class ShortcodeController
         ]);
 
         $class      = sanitize_text_field($atts['class']);
-        $sort_html  = $show_sort ? $this->render_sort_bar($orderby, $total, min($per_page, $total)) : '';
+        $sort_html  = $show_sort ? $this->render_sort_bar($orderby, $category, $total, min($per_page, $total)) : '';
         $loader     = '<div class="drw-sale-loading" aria-hidden="true"><span class="drw-sale-spinner"></span><span class="drw-sale-spinner-text">' . esc_html__('Cargando más productos...', 'discount-rules-woo') . '</span></div>';
         $sentinel   = '<div class="drw-sale-sentinel"></div>';
 
@@ -466,9 +466,9 @@ class ShortcodeController
     }
 
     /**
-     * Render the sort toolbar (count text + orderby dropdown).
+     * Render the sort/filter toolbar (count text + category filter + orderby dropdown).
      */
-    private function render_sort_bar($orderby, $total, $shown)
+    private function render_sort_bar($orderby, $category, $total, $shown)
     {
         $count_text = sprintf(
             __('Mostrando 1&ndash;%1$d de %2$d resultados', 'discount-rules-woo'),
@@ -476,7 +476,28 @@ class ShortcodeController
             $total
         );
 
-        $options = [
+        // Category filter
+        $cat_terms = get_terms([
+            'taxonomy'   => 'product_cat',
+            'hide_empty' => true,
+            'orderby'    => 'name',
+            'order'      => 'ASC',
+        ]);
+
+        $cat_opts = '<option value="">' . esc_html__('Todas las categorías', 'discount-rules-woo') . '</option>';
+        if (!is_wp_error($cat_terms) && !empty($cat_terms)) {
+            foreach ($cat_terms as $term) {
+                $cat_opts .= sprintf(
+                    '<option value="%s"%s>%s</option>',
+                    esc_attr($term->slug),
+                    selected($term->slug, $category, false),
+                    esc_html($term->name)
+                );
+            }
+        }
+
+        // Sort options
+        $sort_options = [
             'date'       => __('Ordenar por las últimas', 'discount-rules-woo'),
             'popularity' => __('Ordenar por popularidad', 'discount-rules-woo'),
             'rating'     => __('Ordenar por calificación media', 'discount-rules-woo'),
@@ -485,9 +506,9 @@ class ShortcodeController
             'discount'   => __('Ordenar por mayor descuento', 'discount-rules-woo'),
         ];
 
-        $opts_html = '';
-        foreach ($options as $value => $label) {
-            $opts_html .= sprintf(
+        $sort_opts = '';
+        foreach ($sort_options as $value => $label) {
+            $sort_opts .= sprintf(
                 '<option value="%s"%s>%s</option>',
                 esc_attr($value),
                 selected($value, $orderby, false),
@@ -496,10 +517,12 @@ class ShortcodeController
         }
 
         return sprintf(
-            '<div class="drw-sort-bar"><span class="drw-results-count">%s</span><select class="drw-sort-select" aria-label="%s">%s</select></div>',
+            '<div class="drw-sort-bar"><span class="drw-results-count">%s</span><div class="drw-sort-controls"><select class="drw-cat-select" aria-label="%s">%s</select><select class="drw-sort-select" aria-label="%s">%s</select></div></div>',
             $count_text,
+            esc_attr__('Filtrar por categoría', 'discount-rules-woo'),
+            $cat_opts,
             esc_attr__('Ordenar productos', 'discount-rules-woo'),
-            $opts_html
+            $sort_opts
         );
     }
 

@@ -15,6 +15,7 @@
         var sentinel = wrap.querySelector('.drw-sale-sentinel');
         var loader   = wrap.querySelector('.drw-sale-loading');
         var sortSel  = wrap.querySelector('.drw-sort-select');
+        var catSel   = wrap.querySelector('.drw-cat-select');
         var countEl  = wrap.querySelector('.drw-results-count');
         if (!grid || !sentinel) return;
 
@@ -82,6 +83,16 @@
             }
         }, { rootMargin: '300px' });
         observer.observe(sentinel);
+
+        // Category filter
+        if (catSel) {
+            catSel.addEventListener('change', function () {
+                cfg.category = this.value;
+                cfg.hasMore  = true;
+                sentinel.style.display = '';
+                doFetch(1, true);
+            });
+        }
 
         // Sort dropdown
         if (sortSel) {

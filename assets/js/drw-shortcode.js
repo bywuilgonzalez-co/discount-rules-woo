@@ -11,12 +11,13 @@
         try { cfg = JSON.parse(raw); } catch (e) { return; }
         if (!cfg.ajaxUrl) return;
 
-        var grid     = wrap.querySelector('.drw-sale-items-grid');
-        var sentinel = wrap.querySelector('.drw-sale-sentinel');
-        var loader   = wrap.querySelector('.drw-sale-loading');
-        var sortSel  = wrap.querySelector('.drw-sort-select');
-        var catSel   = wrap.querySelector('.drw-cat-select');
-        var countEl  = wrap.querySelector('.drw-results-count');
+        var grid        = wrap.querySelector('.drw-sale-items-grid');
+        var sentinel    = wrap.querySelector('.drw-sale-sentinel');
+        var loader      = wrap.querySelector('.drw-sale-loading');
+        var sortSel     = wrap.querySelector('.drw-sort-select');
+        var catSel      = wrap.querySelector('.drw-cat-select');
+        var clearBtn    = wrap.querySelector('.drw-clear-filters');
+        var countEl     = wrap.querySelector('.drw-results-count');
         if (!grid || !sentinel) return;
 
         var busy = false;
@@ -84,15 +85,36 @@
         }, { rootMargin: '300px' });
         observer.observe(sentinel);
 
+        function syncClearBtn() {
+            if (!clearBtn) return;
+            clearBtn.style.display = cfg.category ? 'inline-flex' : 'none';
+        }
+
         // Category filter
         if (catSel) {
             catSel.addEventListener('change', function () {
                 cfg.category = this.value;
                 cfg.hasMore  = true;
                 sentinel.style.display = '';
+                syncClearBtn();
                 doFetch(1, true);
             });
         }
+
+        // Clear filter button
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function () {
+                cfg.category = '';
+                if (catSel) catSel.value = '';
+                cfg.hasMore = true;
+                sentinel.style.display = '';
+                syncClearBtn();
+                doFetch(1, true);
+            });
+        }
+
+        // Sync button state on init (in case category was pre-set via shortcode attr)
+        syncClearBtn();
 
         // Sort dropdown
         if (sortSel) {

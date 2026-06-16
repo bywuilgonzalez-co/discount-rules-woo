@@ -516,13 +516,20 @@ class ShortcodeController
             );
         }
 
+        $clear_btn = sprintf(
+            '<button type="button" class="drw-clear-filters" aria-label="%s">&#10005; %s</button>',
+            esc_attr__('Limpiar filtro de categoría', 'discount-rules-woo'),
+            esc_html__('Limpiar', 'discount-rules-woo')
+        );
+
         return sprintf(
-            '<div class="drw-sort-bar"><span class="drw-results-count">%s</span><div class="drw-sort-controls"><select class="drw-cat-select" aria-label="%s">%s</select><select class="drw-sort-select" aria-label="%s">%s</select></div></div>',
+            '<div class="drw-sort-bar"><span class="drw-results-count">%s</span><div class="drw-sort-controls"><select class="drw-cat-select" aria-label="%s">%s</select><select class="drw-sort-select" aria-label="%s">%s</select>%s</div></div>',
             $count_text,
             esc_attr__('Filtrar por categoría', 'discount-rules-woo'),
             $cat_opts,
             esc_attr__('Ordenar productos', 'discount-rules-woo'),
-            $sort_opts
+            $sort_opts,
+            $clear_btn
         );
     }
 

@@ -44,8 +44,8 @@ jobs:
 
       - name: Install WordPress Coding Standards
         run: |
+          composer config allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
           composer require --dev wp-coding-standards/wpcs dealerdirect/phpcodesniffer-composer-installer --no-interaction --no-progress
-          phpcs --config-set installed_paths vendor/wp-coding-standards/wpcs
 
       - name: Run PHPCS
         run: |

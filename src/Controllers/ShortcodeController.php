@@ -303,9 +303,15 @@ class ShortcodeController
     private function render_product_card($product, array $sale_data)
     {
         $product_id = (int)$product->get_id();
-        $image = function_exists('get_the_post_thumbnail')
+
+        $image     = function_exists('get_the_post_thumbnail')
             ? get_the_post_thumbnail($product_id, 'woocommerce_thumbnail', ['class' => 'drw-sale-item-image'])
             : '';
+        $no_img    = empty($image) ? ' drw-no-image' : '';
+
+        if (empty($image) && function_exists('wc_placeholder_img')) {
+            $image = wc_placeholder_img('woocommerce_thumbnail', ['class' => 'drw-sale-item-image']);
+        }
 
         $price_html = sprintf(
             '<span class="drw-sale-item-price"><del>%s</del> <ins>%s</ins></span>',
@@ -314,8 +320,9 @@ class ShortcodeController
         );
 
         return sprintf(
-            '<article class="drw-sale-item"><a class="drw-sale-item-link" href="%s"><span class="drw-sale-item-media">%s%s</span><span class="drw-sale-item-title">%s</span>%s</a></article>',
+            '<article class="drw-sale-item"><a class="drw-sale-item-link" href="%s"><span class="drw-sale-item-media%s">%s%s</span><span class="drw-sale-item-title">%s</span>%s</a></article>',
             esc_url(get_permalink($product_id)),
+            esc_attr($no_img),
             self::render_sale_percentage_badge($sale_data['percentage']),
             $image,
             esc_html($product->get_name()),

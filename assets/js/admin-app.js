@@ -23,6 +23,7 @@
     // Initial localized data passed from PHP
     const adminData = window.drwAdminData || {
         apiRoot: '/wp-json/drw/v1/rules',
+        settingsApiRoot: '/wp-json/drw/v1/settings',
         nonce: '',
         products: [],
         categories: [],
@@ -296,14 +297,23 @@
 
             // Header Section
             el('div', { className: 'drw-header' },
-                el('h2', { className: 'drw-title' }, screen === 'list' ? 'Active Rules Dashboard' : (editingRule.id ? 'Edit Discount Rule' : 'Create New Discount Rule')),
-                screen === 'list' && el(Button, { className: 'drw-primary-btn', onClick: handleAddRule }, '+ Create Rule')
+                el('h2', { className: 'drw-title' },
+                    screen === 'settings' ? 'Configuración Global' :
+                    screen === 'list'     ? 'Active Rules Dashboard' :
+                    (editingRule && editingRule.id ? 'Edit Discount Rule' : 'Create New Discount Rule')
+                ),
+                screen === 'list' && el('div', { style: { display: 'flex', gap: '8px' } },
+                    el(Button, { className: 'drw-secondary-btn', onClick: () => setScreen('settings') }, '⚙ Configuración'),
+                    el(Button, { className: 'drw-primary-btn', onClick: handleAddRule }, '+ Create Rule')
+                )
             ),
 
             // Screens
-            screen === 'list' 
-                ? el(RulesList, { rules, onEdit: handleEditRule, onDelete: handleDeleteRule, onToggle: handleToggleStatus }) 
-                : el(RuleEditor, { rule: editingRule, setRule: setEditingRule, onSave: handleSaveRule, onCancel: () => setScreen('list') })
+            screen === 'settings'
+                ? el(GlobalSettings, { onBack: () => setScreen('list') })
+                : screen === 'list'
+                    ? el(RulesList, { rules, onEdit: handleEditRule, onDelete: handleDeleteRule, onToggle: handleToggleStatus })
+                    : el(RuleEditor, { rule: editingRule, setRule: setEditingRule, onSave: handleSaveRule, onCancel: () => setScreen('list') })
         );
     }
 
@@ -1152,6 +1162,215 @@
             el('div', { style: { display: 'flex', gap: '12px', marginTop: '24px' } },
                 el(Button, { className: 'drw-primary-btn', onClick: onSave }, 'Save Rules Configuration'),
                 el(Button, { className: 'drw-secondary-btn', onClick: onCancel }, 'Cancel')
+            )
+        );
+    }
+
+    /**
+     * Global Settings Screen
+     */
+    function GlobalSettings({ onBack }) {
+        const [settings, setSettings] = useState(null);
+        const [loading, setLoading]   = useState(true);
+        const [saving, setSaving]     = useState(false);
+        const [notice, setNotice]     = useState(null);
+
+        // Derive REST path from localized URL
+        const settingsPath = (adminData.settingsApiRoot || '')
+            .replace(/^https?:\/\/[^/]+\/wp-json/, '') || '/drw/v1/settings';
+
+        useEffect(() => {
+            apiFetch({ path: settingsPath })
+                .then((data) => { setSettings(data); setLoading(false); })
+                .catch((err) => {
+                    setNotice({ type: 'error', msg: err.message || 'Error al cargar la configuración.' });
+                    setLoading(false);
+                });
+        }, []);
+
+        // Immutable deep-set via dot-path
+        const updateNested = (obj, keys, value) => {
+            const copy = Object.assign({}, obj);
+            if (keys.length === 1) { copy[keys[0]] = value; return copy; }
+            copy[keys[0]] = updateNested(copy[keys[0]] || {}, keys.slice(1), value);
+            return copy;
+        };
+        const updateSetting = (path, value) =>
+            setSettings((prev) => updateNested(JSON.parse(JSON.stringify(prev)), path.split('.'), value));
+
+        const handleSave = () => {
+            setSaving(true);
+            apiFetch({ path: settingsPath, method: 'POST', data: settings })
+                .then(() => { setNotice({ type: 'success', msg: 'Configuración guardada exitosamente.' }); setSaving(false); })
+                .catch((err) => { setNotice({ type: 'error', msg: err.message || 'Error al guardar.' }); setSaving(false); });
+        };
+
+        const handleReset = () => {
+            if (!confirm('¿Restaurar toda la configuración a valores por defecto? Esta acción no se puede deshacer.')) return;
+            apiFetch({ path: settingsPath + '/reset', method: 'POST' })
+                .then((data) => { setSettings(data); setNotice({ type: 'success', msg: 'Configuración restaurada a valores por defecto.' }); })
+                .catch((err) => { setNotice({ type: 'error', msg: err.message || 'Error al restaurar.' }); });
+        };
+
+        if (loading) {
+            return el('div', { style: { textAlign: 'center', padding: '50px' } },
+                el(Spinner), el('p', null, 'Cargando configuración...'));
+        }
+        if (!settings) {
+            return el(Notice, { status: 'error' }, 'No se pudo cargar la configuración.');
+        }
+
+        const dt = settings.discount_types  || {};
+        const rb = settings.rules_behavior  || {};
+        const ft = settings.features        || {};
+        const th = settings.theme           || {};
+        const cc = th.custom_colors         || {};
+        const ty = th.typography            || {};
+        const sp = th.spacing               || {};
+
+        return el('div', { className: 'drw-settings-wrap' },
+
+            notice && el(Notice, { status: notice.type, isDismissible: true, onDismiss: () => setNotice(null) }, notice.msg),
+
+            /* ── 1. Tipos de Descuento ─────────────────────────────── */
+            el('div', { className: 'drw-form-section' },
+                el('h3', null, '1. Tipos de Descuento Habilitados'),
+                el('div', { className: 'drw-settings-toggles' },
+                    el(ToggleControl, { label: 'Porcentaje (% Off)',                  checked: !!(dt.percentage  && dt.percentage.enabled),  onChange: (v) => updateSetting('discount_types.percentage.enabled',  v) }),
+                    el(ToggleControl, { label: 'Precio Fijo ($ Off)',                 checked: !!(dt.fixed       && dt.fixed.enabled),        onChange: (v) => updateSetting('discount_types.fixed.enabled',       v) }),
+                    el(ToggleControl, { label: 'Bulk / Escalonado por cantidad',      checked: !!(dt.bulk        && dt.bulk.enabled),         onChange: (v) => updateSetting('discount_types.bulk.enabled',        v) }),
+                    el(ToggleControl, { label: 'BOGO – Compra X, Lleva Y',           checked: !!(dt.bogo        && dt.bogo.enabled),         onChange: (v) => updateSetting('discount_types.bogo.enabled',        v) }),
+                    el(ToggleControl, { label: 'Bundle / Paquete a precio especial', checked: !!(dt.bundle_set  && dt.bundle_set.enabled),   onChange: (v) => updateSetting('discount_types.bundle_set.enabled',  v) }),
+                    el(ToggleControl, { label: 'Envío Gratis',                        checked: !!(dt.free_shipping && dt.free_shipping.enabled), onChange: (v) => updateSetting('discount_types.free_shipping.enabled', v) })
+                ),
+                dt.bulk && dt.bulk.enabled && el('div', { style: { marginTop: '8px', maxWidth: '200px' } },
+                    el(TextControl, {
+                        label: 'Máximo de niveles Bulk',
+                        type: 'number',
+                        value: String(dt.bulk.max_tiers || 10),
+                        onChange: (v) => updateSetting('discount_types.bulk.max_tiers', parseInt(v, 10) || 10)
+                    })
+                )
+            ),
+
+            /* ── 2. Comportamiento de Reglas ───────────────────────── */
+            el('div', { className: 'drw-form-section' },
+                el('h3', null, '2. Comportamiento de Reglas'),
+                el(ToggleControl, {
+                    label: 'Permitir múltiples descuentos en el mismo carrito',
+                    checked: !!rb.allow_multiple_discounts,
+                    onChange: (v) => updateSetting('rules_behavior.allow_multiple_discounts', v)
+                }),
+                el(SelectControl, {
+                    label: 'Estrategia de combinación',
+                    value: rb.combination_strategy || 'sum_best',
+                    options: [
+                        { label: 'Usar el mejor descuento',       value: 'sum_best'       },
+                        { label: 'Sumar todos los descuentos',    value: 'sum_all'        },
+                        { label: 'Solo el descuento más alto',    value: 'highest_single' }
+                    ],
+                    onChange: (v) => updateSetting('rules_behavior.combination_strategy', v)
+                }),
+                el(SelectControl, {
+                    label: 'Orden de aplicación de reglas',
+                    value: rb.apply_order || 'priority',
+                    options: [
+                        { label: 'Por prioridad asignada',  value: 'priority'      },
+                        { label: 'Por fecha de creación',   value: 'creation_date' }
+                    ],
+                    onChange: (v) => updateSetting('rules_behavior.apply_order', v)
+                }),
+                el(ToggleControl, {
+                    label: 'Una regla exclusiva cancela las demás reglas activas',
+                    checked: !!rb.exclusive_override,
+                    onChange: (v) => updateSetting('rules_behavior.exclusive_override', v)
+                })
+            ),
+
+            /* ── 3. Características Generales ──────────────────────── */
+            el('div', { className: 'drw-form-section' },
+                el('h3', null, '3. Características Generales'),
+                el('div', { className: 'drw-settings-toggles' },
+                    el(ToggleControl, { label: 'Habilitar programación por fechas (date_from / date_to)', checked: !!ft.enable_scheduling,    onChange: (v) => updateSetting('features.enable_scheduling',    v) }),
+                    el(ToggleControl, { label: 'Habilitar límites de uso por regla',                      checked: !!ft.enable_usage_limits,  onChange: (v) => updateSetting('features.enable_usage_limits',  v) }),
+                    el(ToggleControl, { label: 'Mostrar etiquetas de descuento en el catálogo',           checked: !!ft.show_discount_labels, onChange: (v) => updateSetting('features.show_discount_labels', v) }),
+                    el(ToggleControl, { label: 'Modo debug (registrar en consola del navegador)',          checked: !!ft.enable_debug_mode,    onChange: (v) => updateSetting('features.enable_debug_mode',    v) })
+                ),
+                el(SelectControl, {
+                    label: 'Redondeo de precios calculados',
+                    value: ft.round_prices || 'standard',
+                    options: [
+                        { label: 'Estándar (al más cercano)', value: 'standard' },
+                        { label: 'Siempre hacia abajo',       value: 'down'     },
+                        { label: 'Siempre hacia arriba',      value: 'up'       },
+                        { label: 'Half-up (0.5 sube)',        value: 'half_up'  }
+                    ],
+                    onChange: (v) => updateSetting('features.round_prices', v)
+                })
+            ),
+
+            /* ── 4. Tema y Colores ─────────────────────────────────── */
+            el('div', { className: 'drw-form-section' },
+                el('h3', null, '4. Tema y Personalización Visual'),
+                el(SelectControl, {
+                    label: 'Tema predefinido',
+                    value: th.preset || 'default',
+                    options: [
+                        { label: 'Default (Azul moderno)', value: 'default'  },
+                        { label: 'Dark (Oscuro)',           value: 'dark'     },
+                        { label: 'Colorful (Multicolor)',   value: 'colorful' },
+                        { label: 'Minimal (Negro/Blanco)',  value: 'minimal'  }
+                    ],
+                    onChange: (v) => updateSetting('theme.preset', v)
+                }),
+                el('p', { className: 'drw-settings-label' }, 'Colores personalizados (formato hex: #RRGGBB)'),
+                el('div', { className: 'drw-colors-grid' },
+                    el(TextControl, { label: 'Primario',        value: cc.primary   || '#3b82f6', onChange: (v) => updateSetting('theme.custom_colors.primary',   v) }),
+                    el(TextControl, { label: 'Secundario',      value: cc.secondary || '#475569', onChange: (v) => updateSetting('theme.custom_colors.secondary', v) }),
+                    el(TextControl, { label: 'Éxito',           value: cc.success   || '#16a34a', onChange: (v) => updateSetting('theme.custom_colors.success',   v) }),
+                    el(TextControl, { label: 'Advertencia',     value: cc.warning   || '#ea580c', onChange: (v) => updateSetting('theme.custom_colors.warning',   v) }),
+                    el(TextControl, { label: 'Peligro / Error', value: cc.danger    || '#dc2626', onChange: (v) => updateSetting('theme.custom_colors.danger',    v) })
+                ),
+                el('p', { className: 'drw-settings-label' }, 'Tipografía'),
+                el('div', { className: 'drw-colors-grid' },
+                    el(SelectControl, {
+                        label: 'Familia tipográfica',
+                        value: ty.font_family || 'system-ui',
+                        options: [
+                            { label: 'System UI (por defecto)', value: 'system-ui'           },
+                            { label: 'Arial',                   value: 'Arial, sans-serif'   },
+                            { label: 'Inter',                   value: "'Inter', sans-serif"  },
+                            { label: 'Roboto',                  value: "'Roboto', sans-serif" }
+                        ],
+                        onChange: (v) => updateSetting('theme.typography.font_family', v)
+                    }),
+                    el(TextControl, { label: 'Tamaño fuente base (px)',   type: 'number', value: String(ty.base_size    || 14), onChange: (v) => updateSetting('theme.typography.base_size',    parseInt(v, 10) || 14) }),
+                    el(TextControl, { label: 'Tamaño fuente título (px)', type: 'number', value: String(ty.heading_size || 20), onChange: (v) => updateSetting('theme.typography.heading_size', parseInt(v, 10) || 20) })
+                ),
+                el('p', { className: 'drw-settings-label' }, 'Espaciado'),
+                el('div', { className: 'drw-colors-grid' },
+                    el(TextControl, { label: 'Padding base (px)',  type: 'number', value: String(sp.padding_base  || 16), onChange: (v) => updateSetting('theme.spacing.padding_base',  parseInt(v, 10) || 16) }),
+                    el(TextControl, { label: 'Border radius (px)', type: 'number', value: String(sp.border_radius || 8),  onChange: (v) => updateSetting('theme.spacing.border_radius', parseInt(v, 10) || 8)  }),
+                    el(SelectControl, {
+                        label: 'Nivel de sombra',
+                        value: sp.shadow_level || 'medium',
+                        options: [
+                            { label: 'Sin sombra',   value: 'none'   },
+                            { label: 'Suave',        value: 'light'  },
+                            { label: 'Medio',        value: 'medium' },
+                            { label: 'Pronunciado',  value: 'heavy'  }
+                        ],
+                        onChange: (v) => updateSetting('theme.spacing.shadow_level', v)
+                    })
+                )
+            ),
+
+            /* ── Acciones ──────────────────────────────────────────── */
+            el('div', { className: 'drw-settings-actions' },
+                el(Button, { className: 'drw-primary-btn', onClick: handleSave, disabled: saving },
+                    saving ? 'Guardando...' : 'Guardar Cambios'),
+                el(Button, { className: 'drw-secondary-btn', onClick: handleReset }, 'Restaurar Defaults'),
+                el(Button, { className: 'drw-secondary-btn', onClick: onBack }, '← Volver a Reglas')
             )
         );
     }

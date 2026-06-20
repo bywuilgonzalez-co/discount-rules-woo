@@ -98,11 +98,12 @@ class AdminController
 
         // Localize scripts with configuration and REST info
         wp_localize_script('drw-admin-app', 'drwAdminData', [
-            'apiRoot'    => esc_url_raw(rest_url('drw/v1/rules')),
-            'nonce'      => wp_create_nonce('wp_rest'),
-            'products'   => $products,
-            'categories' => $categories,
-            'roles'      => $this->get_user_roles(),
+            'apiRoot'         => esc_url_raw(rest_url('drw/v1/rules')),
+            'settingsApiRoot' => esc_url_raw(rest_url('drw/v1/settings')),
+            'nonce'           => wp_create_nonce('wp_rest'),
+            'products'        => $products,
+            'categories'      => $categories,
+            'roles'           => $this->get_user_roles(),
         ]);
     }
 

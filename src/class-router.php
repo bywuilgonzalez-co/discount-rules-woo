@@ -33,16 +33,16 @@ class Router {
 		add_action( 'admin_init', array( __CLASS__, 'check_database' ) );
 		register_activation_hook( dirname( __DIR__, 2 ) . '/discount-rules-woo.php', array( __CLASS__, 'activate_plugin' ) );
 
-		$catalog_controller    = \Drw\App\Controllers\CatalogController::instance();
-		$cart_controller       = \Drw\App\Controllers\CartController::instance();
-		$admin_controller      = \Drw\App\Controllers\AdminController::instance();
-		$api_controller        = \Drw\App\Controllers\ApiController::instance();
-		$shortcode_controller  = \Drw\App\Controllers\ShortcodeController::instance();
-		$updater               = \Drw\App\Controllers\Updater::instance();
-		$settings_controller   = \Drw\App\Controllers\SettingsController::instance();
-		$analytics_controller  = \Drw\App\Controllers\AnalyticsController::instance();
-		$import_export         = \Drw\App\Controllers\ImportExportController::instance();
-		$progress_bar          = \Drw\App\Controllers\ProgressBarController::instance();
+		$catalog_controller   = \Drw\App\Controllers\CatalogController::instance();
+		$cart_controller      = \Drw\App\Controllers\CartController::instance();
+		$admin_controller     = \Drw\App\Controllers\AdminController::instance();
+		$api_controller       = \Drw\App\Controllers\ApiController::instance();
+		$shortcode_controller = \Drw\App\Controllers\ShortcodeController::instance();
+		$updater              = \Drw\App\Controllers\Updater::instance();
+		$settings_controller  = \Drw\App\Controllers\SettingsController::instance();
+		$analytics_controller = \Drw\App\Controllers\AnalyticsController::instance();
+		$import_export        = \Drw\App\Controllers\ImportExportController::instance();
+		$progress_bar         = \Drw\App\Controllers\ProgressBarController::instance();
 
 		$catalog_controller->register_hooks();
 		$cart_controller->register_hooks();

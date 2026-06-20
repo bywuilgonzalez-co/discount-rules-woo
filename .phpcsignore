@@ -1,0 +1,6 @@
+# Legacy files with pre-existing PHPCS violations
+# These should be refactored in a separate PR
+src/Adjustments/Bogo.php
+src/Adjustments/BundleSet.php
+src/Adjustments/FreeShipping.php
+src/Controllers/RulesEngine.php

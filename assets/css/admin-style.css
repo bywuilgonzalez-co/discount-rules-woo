@@ -434,3 +434,54 @@
 .drw-condition-row > .drw-remove-btn {
     align-self: center;
 }
+
+/* ── Settings Screen ─────────────────────────────────────────────── */
+.drw-settings-wrap {
+    padding: 8px 4px;
+}
+
+.drw-settings-wrap .drw-form-section {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+}
+
+.drw-settings-wrap .drw-form-section h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.drw-settings-toggles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 8px;
+}
+
+.drw-colors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.drw-settings-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    margin: 16px 0 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.drw-settings-actions {
+    display: flex;
+    gap: 10px;
+    padding: 16px 0 4px;
+    flex-wrap: wrap;
+}
